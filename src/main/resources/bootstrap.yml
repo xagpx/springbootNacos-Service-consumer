@@ -1,0 +1,123 @@
+spring:
+  cloud:
+     nacos:
+          config:
+             server-addr: 127.0.0.1:8848
+             namespace: 3ad4f00e-3725-4ce6-babe-631768e9e589
+             file-extension: yml
+             prefix: nacos-consumer
+             group: DEV_GROUP
+             shared-dataids: test.yml,a.yml
+             refreshable-dataids: test.yml,a.yml
+          discovery: 
+             server-addr: 127.0.0.1:8848
+             namespace: 3ad4f00e-3725-4ce6-babe-631768e9e589
+             group: DEV_GROUP
+#   java -Dserver.port=8080 -Dcsp.sentinel.dashboard.server=localhost:8080 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard.jar
+     sentinel:
+        transport:
+        # 项目本地会启动一个服务的端口号，默认8719，用于与sentinel-dashboard通讯
+#          port: 8719
+          dashboard: 127.0.0.1:8060
+        heartbeat-interval-ms: 500
+        filter: 
+         # 需要进行限流监控的接口，多个匹配用逗号隔开
+#          url-patterns: /*
+          enabled: true
+        servlet:
+        # 触发限流后重定向的页面
+          block-page: /limiting
+        eager: true
+        ##设置后页面@SentinelResource注解限流失效
+#        datasource: 
+#          ds2:  
+#            nacos:  
+#              server-addr: localhost:8848
+#              namespace: 3ad4f00e-3725-4ce6-babe-631768e9e589
+#              data-id: nacos-consumer-sentinel
+#              group-id: DEFAULT_GROUP
+#              data-type: json
+#              rule-type: flow
+             
+#  zipkin:
+#      base-url: http://127.0.0.1:9411
+#  sleuth: 
+#      sampler: 
+#          probability: 1.0
+## hystrix相关配置
+hystrix:
+  threadpool:
+    # 指定服务的配置
+    nacos-provider:
+      coreSize: 1
+    #设置BlockingQueue最大的队列值。
+      maxQueueSize: 1
+      queueSizeRejectionThreshold: 1
+      
+    # userThreadPool是UserTimeOutCommand中配置的threadPoolKey
+    userThreadPool:
+    #核心线程数，该值也是命令执行的最大并发量
+      coreSize: 20
+      maxQueueSize: 20
+    #队列设置拒绝阈值
+      queueSizeRejectionThreshold: 3
+    # 这是默认的配置
+    default:
+      coreSize: 10
+      maxQueueSize: 200
+      queueSizeRejectionThreshold: 2
+  command:
+    # 指定feign客户端中具体的方法
+    HelloServiceFeign:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 20000
+    userCommandKey:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 15000
+    # 这是默认的配置
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          strategy: THREAD
+          thread:
+            timeoutInMilliseconds: 15000
+            interruptOnTimeout: true
+            interruptOnFutureCancel: false
+          semaphore:
+          #当最大并发请求达到该设置值时，后续的请求将被拒绝
+            maxConcurrentRequests: 2
+      fallback:
+        enabled: true
+        isolation:
+          semaphore:
+        #  #如果并发数达到该设置值，请求会被拒绝和抛出异常并且fallback不会被调用 默认10
+            maxConcurrentRequests: 10
+      circuitBreaker:
+        enabled: true
+        forceOpen: false
+        forceClosed: false
+        requestVolumeThreshold: 4
+        #当出错率超过50%后熔断器启动
+        errorThresholdPercentage: 20
+        #熔断器工作时间，超过这个时间，先放一个请求进去，成功的话就关闭熔断，失败就再等一段时间
+        sleepWindowInMilliseconds: 5000
+      metrics:
+      #滚动统计窗口划分的桶数
+        rollingStats:
+        #线程池统计指标的时间，默认10000
+          timeInMilliseconds: 1000
+          numBuckets: 1
+        #窗口将划分的桶的数量
+        rollingPercentile:
+          enabled: true
+          timeInMilliseconds: 1000
+          numBuckets: 1
+          bucketSize: 100
+        healthSnapshot:
+          intervalInMilliseconds: 500
